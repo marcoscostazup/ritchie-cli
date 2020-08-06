@@ -1,8 +1,26 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package stream
 
 import (
+	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 type FileExister interface {
@@ -17,6 +35,10 @@ type FileWriter interface {
 	Write(path string, content []byte) error
 }
 
+type FileCreator interface {
+	Create(path string, data io.ReadCloser) error
+}
+
 type FileRemover interface {
 	Remove(path string) error
 }
@@ -29,15 +51,29 @@ type FileCopier interface {
 	Copy(src, dst string) error
 }
 
-type FileCopyExistLister interface {
-	FileLister
-	FileCopier
-	FileExister
+type FileAppender interface {
+	Append(path string, content []byte) error
+}
+
+type FileMover interface {
+	Move(oldPath, newPath string, files []string) error
 }
 
 type FileReadExister interface {
 	FileReader
 	FileExister
+}
+
+type FileMoveRemover interface {
+	FileMover
+	FileRemover
+}
+
+type FileCopyExistListerWriter interface {
+	FileLister
+	FileCopier
+	FileExister
+	FileWriter
 }
 
 type FileWriteReadExister interface {
@@ -46,8 +82,29 @@ type FileWriteReadExister interface {
 	FileExister
 }
 
+type FileWriteReadExistLister interface {
+	FileWriter
+	FileReader
+	FileExister
+	FileLister
+}
+
+type FileWriteExistAppender interface {
+	FileWriter
+	FileExister
+	FileAppender
+}
+
 type FileWriteReadExistRemover interface {
 	FileWriter
+	FileReader
+	FileExister
+	FileRemover
+}
+
+type FileWriteCreatorReadExistRemover interface {
+	FileWriter
+	FileCreator
 	FileReader
 	FileExister
 	FileRemover
@@ -70,7 +127,6 @@ func (f FileManager) Read(path string) ([]byte, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
-
 	return b, err
 }
 
@@ -79,7 +135,6 @@ func (f FileManager) Exists(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
 	}
-
 	return true
 }
 
@@ -87,6 +142,20 @@ func (f FileManager) Exists(path string) bool {
 // A successful call returns err == nil
 func (f FileManager) Write(path string, content []byte) error {
 	return ioutil.WriteFile(path, content, os.ModePerm)
+}
+
+func (f FileManager) Create(path string, data io.ReadCloser) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+	if _, err = io.Copy(file, data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Remove removes the named file
@@ -125,5 +194,29 @@ func (f FileManager) Copy(src, dest string) error {
 		return err
 	}
 
+	return nil
+}
+
+func (f FileManager) Append(path string, content []byte) error {
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	if _, err := file.Write(content); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f FileManager) Move(oldPath, newPath string, files []string) error {
+	for _, f := range files {
+		pwdOF := filepath.Join(oldPath, f)
+		pwdNF := filepath.Join(newPath, f)
+		if err := os.Rename(pwdOF, pwdNF); err != nil {
+			return err
+		}
+	}
 	return nil
 }

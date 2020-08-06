@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package api
 
 import (
@@ -8,12 +24,7 @@ import (
 
 const (
 	ritchieHomePattern = "%s/.rit"
-	// Team version
-	Team = Edition("team")
-	// Single version
-	Single = Edition("single")
-	// CoreCmdsDesc commands group description
-	CoreCmdsDesc = "core commands:"
+	CoreCmdsDesc       = "core commands:"
 )
 
 var (
@@ -32,9 +43,11 @@ var (
 		{Parent: "root", Usage: "init"},
 		{Parent: "root", Usage: "list"},
 		{Parent: "root_list", Usage: "repo"},
+		{Parent: "root_list", Usage: "credential"},
 		{Parent: "root", Usage: "set"},
 		{Parent: "root_set", Usage: "context"},
 		{Parent: "root_set", Usage: "credential"},
+		{Parent: "root_set", Usage: "repo-priority"},
 		{Parent: "root", Usage: "show"},
 		{Parent: "root_show", Usage: "context"},
 		{Parent: "root", Usage: "create"},
@@ -44,48 +57,22 @@ var (
 		{Parent: "root", Usage: "build"},
 		{Parent: "root_build", Usage: "formula"},
 		{Parent: "root", Usage: "upgrade"},
-		{Parent: "root", Usage: "clean"},
-		{Parent: "root_clean", Usage: "formulas"},
+		{Parent: "root", Usage: "tutorial"},
 	}
-
-	SingleCoreCmds = CoreCmds
-
-	TeamCoreCmds = append(
-		CoreCmds,
-		[]Command{
-			// temporarily removed {Parent: "root_create", Usage: "user"},
-			{Parent: "root_delete", Usage: "user"},
-			{Parent: "root", Usage: "login"},
-			{Parent: "root", Usage: "logout"},
-		}...,
-	)
 )
 
 // Command type
 type Command struct {
-	Parent  string  `json:"parent"`
-	Usage   string  `json:"usage"`
-	Help    string  `json:"help"`
-	Formula *Formula `json:"formula,omitempty"`
-	Repo    string  `json:"Repo,omitempty"`
+	Id       string `json:"id"`
+	Parent   string `json:"parent"`
+	Usage    string `json:"usage"`
+	Help     string `json:"help"`
+	LongHelp string `json:"longHelp"`
+	Formula  bool   `json:"formula,omitempty"`
+	Repo     string `json:"Repo,omitempty"`
 }
 
 type Commands []Command
-
-// Formula type
-type Formula struct {
-	Path    string `json:"path,omitempty"`
-	Bin     string `json:"bin,omitempty"`
-	LBin    string `json:"binLinux,omitempty"`
-	MBin    string `json:"binDarwin,omitempty"`
-	WBin    string `json:"binWindows,omitempty"`
-	Bundle  string `json:"bundle,omitempty"`
-	Config  string `json:"config,omitempty"`
-	RepoURL string `json:"repoUrl,omitempty"`
-}
-
-// Edition type that represents Single or Team.
-type Edition string
 
 // TermInputType represents the source of the inputs will be readed
 type TermInputType int

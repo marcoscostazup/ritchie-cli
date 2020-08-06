@@ -1,234 +1,136 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"os"
+	"time"
 
-	"github.com/ZupIT/ritchie-cli/pkg/formula"
-	"github.com/ZupIT/ritchie-cli/pkg/security/otp"
+	"github.com/ZupIT/ritchie-cli/pkg/git"
+	"github.com/ZupIT/ritchie-cli/pkg/git/github"
+
+	"github.com/kaduartur/go-cli-spinner/pkg/spinner"
 
 	"github.com/spf13/cobra"
 
+	"github.com/ZupIT/ritchie-cli/pkg/formula"
 	"github.com/ZupIT/ritchie-cli/pkg/prompt"
-	"github.com/ZupIT/ritchie-cli/pkg/security"
-	"github.com/ZupIT/ritchie-cli/pkg/server"
-	"github.com/ZupIT/ritchie-cli/pkg/stdin"
-	"github.com/ZupIT/ritchie-cli/pkg/validator"
+	"github.com/ZupIT/ritchie-cli/pkg/rtutorial"
 )
 
 const (
-	MsgPhrase                    = "Define a passphrase for your machine: "
-	MsgOrganization              = "Enter your organization: "
-	msgOrganizationAlreadyExists = "The organization (%s) already exists. Do you like to override?"
-	MsgServerURL                 = "URL of the server [http(s)://host]: "
-	msgServerURLAlreadyExists    = "The server URL(%s) already exists. Do you like to override?"
-	MsgLogin                     = "You can perform login to your organization now, or later using [rit login] command. Perform now?"
+	addRepoMsg = "Run \"rit add repo\" to add a new repository manually."
 )
 
-type initSingleCmd struct {
-	prompt.InputPassword
-	security.PassphraseManager
-	formula.RepoLoader
-}
+var (
+	addRepoInfo = `You can keep the configuration without adding the community repository,
+but you will need to provide a git repo with the formulas templates and add them with 
+rit add repo command, naming this repository obligatorily as "commons".
 
-type initTeamCmd struct {
-	prompt.InputText
-	prompt.InputPassword
-	prompt.InputURL
+See how to do this on the example: [https://github.com/ZupIT/ritchie-formulas/blob/master/templates/create_formula/README.md]`
+	errMsg             = prompt.Yellow("It was not possible to add the commons repository at this time, please try again later.")
+	ErrInitCommonsRepo = errors.New(errMsg)
+	CommonsRepoURL     = "https://github.com/ZupIT/ritchie-formulas"
+)
+
+type initCmd struct {
+	repo formula.RepositoryAdder
+	git  git.Repositories
+	rt   rtutorial.Finder
 	prompt.InputBool
-	server.FindSetter
-	security.LoginManager
-	formula.RepoLoader
-	otp.Resolver
 }
 
-// NewSingleInitCmd creates init command for single edition
-func NewSingleInitCmd(
-	ip prompt.InputPassword,
-	pm security.PassphraseManager,
-	rl formula.RepoLoader) *cobra.Command {
+func NewInitCmd(repo formula.RepositoryAdder, git git.Repositories, rtf rtutorial.Finder, inBool prompt.InputBool) *cobra.Command {
+	o := initCmd{repo: repo, git: git, rt: rtf, InputBool: inBool}
 
-	o := initSingleCmd{ip, pm, rl}
-
-	return newInitCmd(o.runStdin(), o.runPrompt())
-}
-
-// NewTeamInitCmd creates init command for team edition
-func NewTeamInitCmd(
-	it prompt.InputText,
-	ip prompt.InputPassword,
-	iu prompt.InputURL,
-	ib prompt.InputBool,
-	fs server.FindSetter,
-	lm security.LoginManager,
-	rl formula.RepoLoader,
-	orv otp.Resolver) *cobra.Command {
-
-	o := initTeamCmd{it, ip, iu, ib, fs, lm, rl, orv}
-
-	return newInitCmd(o.runStdin(), o.runPrompt())
-}
-
-func newInitCmd(stdinFunc, promptFunc CommandRunnerFunc) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize rit configuration",
 		Long:  "Initialize rit configuration",
-		RunE:  RunFuncE(stdinFunc, promptFunc),
+		RunE:  o.runPrompt(),
 	}
-	cmd.LocalFlags()
+
 	return cmd
 }
 
-func (o initSingleCmd) runPrompt() CommandRunnerFunc {
+func (in initCmd) runPrompt() CommandRunnerFunc {
 	return func(cmd *cobra.Command, args []string) error {
-		pass, err := o.Password(MsgPhrase)
+		label := "Would you like to add the community repository? [https://github.com/ZupIT/ritchie-formulas]"
+		choose, err := in.Bool(label, []string{"yes", "no"})
 		if err != nil {
 			return err
 		}
 
-		p := security.Passphrase(pass)
-		if err := o.Save(p); err != nil {
-			return err
+		if !choose {
+			fmt.Println()
+			prompt.Warning(addRepoInfo)
+			fmt.Println()
+			fmt.Println(addRepoMsg)
+			return nil
 		}
 
-		return o.Load()
-	}
-}
+		repo := formula.Repo{
+			Provider: "Github",
+			Name:     "commons",
+			Url:      CommonsRepoURL,
+			Priority: 0,
+		}
 
-func (o initSingleCmd) runStdin() CommandRunnerFunc {
-	return func(cmd *cobra.Command, args []string) error {
+		s := spinner.StartNew("Adding the commons repository...")
+		time.Sleep(time.Second * 2)
 
-		obj := struct {
-			Passphrase string `json:"passphrase"`
-		}{}
+		repoInfo := github.NewRepoInfo(repo.Url, repo.Token)
 
-		err := stdin.ReadJson(os.Stdin, &obj)
+		tag, err := in.git.LatestTag(repoInfo)
 		if err != nil {
-			fmt.Println(stdin.MsgInvalidInput)
-			return err
+			s.Error(ErrInitCommonsRepo)
+			fmt.Println(addRepoMsg)
+			return nil
 		}
 
-		p := security.Passphrase(obj.Passphrase)
-		if err := o.Save(p); err != nil {
-			return err
+		repo.Version = formula.RepoVersion(tag.Name)
+
+		if err := in.repo.Add(repo); err != nil {
+			s.Error(ErrInitCommonsRepo)
+			fmt.Println(addRepoMsg)
+			return nil
 		}
 
-		return o.Load()
-	}
-}
+		s.Success(prompt.Green("Initialization successful!"))
 
-func (o initTeamCmd) runPrompt() CommandRunnerFunc {
-	return func(cmd *cobra.Command, args []string) error {
-		cfg, err := o.Find()
-		if err != nil {
-			return err
-		}
-
-		if cfg.Organization != "" && len(cfg.Organization) > 0 {
-			m := fmt.Sprintf(msgOrganizationAlreadyExists, cfg.Organization)
-			y, err := o.Bool(m, []string{"no", "yes"})
-			if err != nil {
-				return err
-			}
-			if y {
-				org, err := o.Text(MsgOrganization, true)
-				if err != nil {
-					return err
-				}
-				cfg.Organization = org
-			}
-		} else {
-			org, err := o.Text(MsgOrganization, true)
-			if err != nil {
-				return err
-			}
-			cfg.Organization = org
-		}
-
-		if err := validator.IsValidURL(cfg.URL); err != nil {
-			u, err := o.URL(MsgServerURL, "")
-			if err != nil {
-				return err
-			}
-			cfg.URL = u
-		} else {
-			m := fmt.Sprintf(msgServerURLAlreadyExists, cfg.URL)
-			y, err := o.Bool(m, []string{"no", "yes"})
-			if err != nil {
-				return err
-			}
-			if y {
-				u, err := o.URL(MsgServerURL, "")
-				if err != nil {
-					return err
-				}
-				cfg.URL = u
-			}
-		}
-
-		if err := o.Set(&cfg); err != nil {
-			return err
-		}
-
-		y, err := o.Bool(MsgLogin, []string{"no", "yes"})
+		tutorialHolder, err := in.rt.Find()
 		if err != nil {
 			return err
 		}
-		if y {
-			u, err := o.Text(MsgUsername, true)
-			if err != nil {
-				return err
-			}
-			p, err := o.Password(MsgPassword)
-			if err != nil {
-				return err
-			}
-
-			otpResponse, err := o.RequestOtp(cfg.URL, cfg.Organization)
-			if err != nil {
-				return err
-			}
-			var totp string
-			if otpResponse.Otp {
-				totp, err = o.Text(MsgOtp, true)
-				if err != nil {
-					return err
-				}
-			}
-
-			us := security.User{
-				Username: u,
-				Password: p,
-				Totp:     totp,
-			}
-			if err := o.Login(us); err != nil {
-				return err
-			}
-			if err := o.Load(); err != nil {
-				return err
-			}
-			fmt.Println("Login successfully!")
-		}
-
+		tutorialInit(tutorialHolder.Current)
 		return nil
 	}
 }
 
-func (o initTeamCmd) runStdin() CommandRunnerFunc {
-	return func(cmd *cobra.Command, args []string) error {
-		cfg := server.Config{}
+func tutorialInit(tutorialStatus string) {
+	const tagTutorial = "\n[TUTORIAL]"
+	const MessageTitle = "How to create new formulas:"
+	const MessageBody = ` ∙ Run "rit create formula"
+ ∙ Open the project with your favorite text editor.` + "\n"
 
-		err := stdin.ReadJson(os.Stdin, &cfg)
-		if err != nil {
-			prompt.Error(stdin.MsgInvalidInput)
-			return err
-		}
-
-		if err := o.Set(&cfg); err != nil {
-			return err
-		}
-
-		return nil
+	if tutorialStatus == tutorialStatusEnabled {
+		prompt.Info(tagTutorial)
+		prompt.Info(MessageTitle)
+		fmt.Println(MessageBody)
 	}
 }

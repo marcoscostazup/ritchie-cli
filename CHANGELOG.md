@@ -1,5 +1,94 @@
 # Changelog
 
+## [2.0.1](https://github.com/zupit/ritchie-cli/tree/2.0.1) (2020-08-06)
+
+[Full Changelog](https://github.com/zupit/ritchie-cli/compare/2.0.0...2.0.1)
+
+**Fixed bugs:**
+
+- \[FIX\] Add repo with the commons name [\#361](https://github.com/ZupIT/ritchie-cli/pull/361) ([kaduartur](https://github.com/kaduartur))
+
+**Merged pull requests:**
+
+- \[Feature\] Add hooks in packagings [\#359](https://github.com/ZupIT/ritchie-cli/pull/359) ([ernelio](https://github.com/ernelio))
+- Release 2.0.0 merge [\#358](https://github.com/ZupIT/ritchie-cli/pull/358) ([zup-ci](https://github.com/zup-ci))
+
+## [2.0.0](https://github.com/zupit/ritchie-cli/tree/2.0.0) (2020-08-05)
+
+[Full Changelog](https://github.com/zupit/ritchie-cli/compare/1.0.0-beta.24...2.0.0)
+
+**Implemented enhancements:**
+
+- \[FEATURE\] rit list credential command [\#178](https://github.com/ZupIT/ritchie-cli/issues/178)
+- Support gitlab provider on command add repo [\#350](https://github.com/ZupIT/ritchie-cli/pull/350) ([kaduartur](https://github.com/kaduartur))
+- Credential through file [\#345](https://github.com/ZupIT/ritchie-cli/pull/345) ([victor-schumacher](https://github.com/victor-schumacher))
+- \[FEATURE\] Update go-cli-spinner lib [\#340](https://github.com/ZupIT/ritchie-cli/pull/340) ([kaduartur](https://github.com/kaduartur))
+- Verbose flag [\#330](https://github.com/ZupIT/ritchie-cli/pull/330) ([viniciussousazup](https://github.com/viniciussousazup))
+- Metadata [\#312](https://github.com/ZupIT/ritchie-cli/pull/312) ([viniciussousazup](https://github.com/viniciussousazup))
+- Create journey tips [\#304](https://github.com/ZupIT/ritchie-cli/pull/304) ([brunats](https://github.com/brunats))
+- Feature/build formula [\#302](https://github.com/ZupIT/ritchie-cli/pull/302) ([kaduartur](https://github.com/kaduartur))
+- List credentials command [\#295](https://github.com/ZupIT/ritchie-cli/pull/295) ([victor-schumacher](https://github.com/victor-schumacher))
+
+**Fixed bugs:**
+
+- \[BUG\] lint doesn't fail pipeline when find issue [\#347](https://github.com/ZupIT/ritchie-cli/issues/347)
+- \[Fix\] lint [\#357](https://github.com/ZupIT/ritchie-cli/pull/357) ([kaduartur](https://github.com/kaduartur))
+- \[FIX\] init warning msg [\#355](https://github.com/ZupIT/ritchie-cli/pull/355) ([kaduartur](https://github.com/kaduartur))
+- \[FIX\] Fix make build stderr [\#348](https://github.com/ZupIT/ritchie-cli/pull/348) ([kaduartur](https://github.com/kaduartur))
+- Fix linter [\#346](https://github.com/ZupIT/ritchie-cli/pull/346) ([victor-schumacher](https://github.com/victor-schumacher))
+- \[Fix\] build local [\#338](https://github.com/ZupIT/ritchie-cli/pull/338) ([kaduartur](https://github.com/kaduartur))
+- Fix work space that have space [\#336](https://github.com/ZupIT/ritchie-cli/pull/336) ([viniciussousazup](https://github.com/viniciussousazup))
+- Adding ansible credentials and bugfix for 2.0 [\#327](https://github.com/ZupIT/ritchie-cli/pull/327) ([henriquemoraes8](https://github.com/henriquemoraes8))
+- Fix/build\_docker [\#317](https://github.com/ZupIT/ritchie-cli/pull/317) ([kaduartur](https://github.com/kaduartur))
+
+**Merged pull requests:**
+
+- Fix notice [\#354](https://github.com/ZupIT/ritchie-cli/pull/354) ([brunats](https://github.com/brunats))
+- Added information about legacy version 1.0.0 [\#353](https://github.com/ZupIT/ritchie-cli/pull/353) ([brunats](https://github.com/brunats))
+- remove files [\#352](https://github.com/ZupIT/ritchie-cli/pull/352) ([ernelio](https://github.com/ernelio))
+- fix license [\#351](https://github.com/ZupIT/ritchie-cli/pull/351) ([ernelio](https://github.com/ernelio))
+- fix license [\#349](https://github.com/ZupIT/ritchie-cli/pull/349) ([ernelio](https://github.com/ernelio))
+- \[FEATURE\] Beautification for windows [\#344](https://github.com/ZupIT/ritchie-cli/pull/344) ([kaduartur](https://github.com/kaduartur))
+- List repo url [\#337](https://github.com/ZupIT/ritchie-cli/pull/337) ([viniciussousazup](https://github.com/viniciussousazup))
+- change errKeyNotFoundTemplate [\#335](https://github.com/ZupIT/ritchie-cli/pull/335) ([viniciussousazup](https://github.com/viniciussousazup))
+- \[FEATURE\] Path for win bin download [\#333](https://github.com/ZupIT/ritchie-cli/pull/333) ([ernelio](https://github.com/ernelio))
+- Change build formulas behavior [\#332](https://github.com/ZupIT/ritchie-cli/pull/332) ([kaduartur](https://github.com/kaduartur))
+- Change VerifyNewVersion [\#331](https://github.com/ZupIT/ritchie-cli/pull/331) ([viniciussousazup](https://github.com/viniciussousazup))
+- Improment PR guide lines [\#328](https://github.com/ZupIT/ritchie-cli/pull/328) ([sandokandias](https://github.com/sandokandias))
+- remove team and single [\#326](https://github.com/ZupIT/ritchie-cli/pull/326) ([ernelio](https://github.com/ernelio))
+- Adding licensing to everything [\#325](https://github.com/ZupIT/ritchie-cli/pull/325) ([viniciusramosdefaria](https://github.com/viniciusramosdefaria))
+- Fix/list credential [\#323](https://github.com/ZupIT/ritchie-cli/pull/323) ([victor-schumacher](https://github.com/victor-schumacher))
+- Verify Credencial of config.json [\#322](https://github.com/ZupIT/ritchie-cli/pull/322) ([viniciussousazup](https://github.com/viniciussousazup))
+- Change Set credencial [\#321](https://github.com/ZupIT/ritchie-cli/pull/321) ([viniciussousazup](https://github.com/viniciussousazup))
+- Improvement readme [\#318](https://github.com/ZupIT/ritchie-cli/pull/318) ([sandokandias](https://github.com/sandokandias))
+- Updated help messages [\#311](https://github.com/ZupIT/ritchie-cli/pull/311) ([brunats](https://github.com/brunats))
+- Run Horus [\#310](https://github.com/ZupIT/ritchie-cli/pull/310) ([Leonardo-Beda-ZUP](https://github.com/Leonardo-Beda-ZUP))
+- Change Upgrade and CommonsUrl [\#309](https://github.com/ZupIT/ritchie-cli/pull/309) ([viniciussousazup](https://github.com/viniciussousazup))
+- Change functional tests [\#308](https://github.com/ZupIT/ritchie-cli/pull/308) ([viniciussousazup](https://github.com/viniciussousazup))
+- Improvement/repo priority setter test [\#306](https://github.com/ZupIT/ritchie-cli/pull/306) ([miguelhbrito](https://github.com/miguelhbrito))
+- Improvement/repo test [\#305](https://github.com/ZupIT/ritchie-cli/pull/305) ([viniciussousazup](https://github.com/viniciussousazup))
+
+## [1.0.0-beta.24](https://github.com/zupit/ritchie-cli/tree/1.0.0-beta.24) (2020-08-03)
+
+[Full Changelog](https://github.com/zupit/ritchie-cli/compare/1.0.0-beta.23...1.0.0-beta.24)
+
+**Implemented enhancements:**
+
+- Create journey tips [\#289](https://github.com/ZupIT/ritchie-cli/issues/289)
+
+**Fixed bugs:**
+
+- \[FIX\] Fix build formula on Windows [\#307](https://github.com/ZupIT/ritchie-cli/pull/307) ([kaduartur](https://github.com/kaduartur))
+- Vulnerability SSL pipeline blocking ignored [\#239](https://github.com/ZupIT/ritchie-cli/pull/239) ([Leonardo-Beda-ZUP](https://github.com/Leonardo-Beda-ZUP))
+
+## [1.0.0-beta.23](https://github.com/zupit/ritchie-cli/tree/1.0.0-beta.23) (2020-07-27)
+
+[Full Changelog](https://github.com/zupit/ritchie-cli/compare/1.0.0-beta.22...1.0.0-beta.23)
+
+**Merged pull requests:**
+
+- Release 1.0.0-beta.22 merge [\#303](https://github.com/ZupIT/ritchie-cli/pull/303) ([zup-ci](https://github.com/zup-ci))
+
 ## [1.0.0-beta.22](https://github.com/zupit/ritchie-cli/tree/1.0.0-beta.22) (2020-07-20)
 
 [Full Changelog](https://github.com/zupit/ritchie-cli/compare/1.0.0-beta.21...1.0.0-beta.22)
@@ -54,7 +143,6 @@
 - Add signature in single [\#265](https://github.com/ZupIT/ritchie-cli/pull/265) ([ernelio](https://github.com/ernelio))
 - Release 1.0.0-beta.19 merge [\#259](https://github.com/ZupIT/ritchie-cli/pull/259) ([zup-ci](https://github.com/zup-ci))
 - FEATURE - Improving information about help [\#256](https://github.com/ZupIT/ritchie-cli/pull/256) ([brunats](https://github.com/brunats))
-- Feature/repo [\#254](https://github.com/ZupIT/ritchie-cli/pull/254) ([kaduartur](https://github.com/kaduartur))
 
 ## [1.0.0-beta.20](https://github.com/zupit/ritchie-cli/tree/1.0.0-beta.20) (2020-07-13)
 

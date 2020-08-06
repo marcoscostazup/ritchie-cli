@@ -1,9 +1,25 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cmd
 
 import (
 	"errors"
 	"fmt"
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/kaduartur/go-cli-spinner/pkg/spinner"
@@ -11,35 +27,37 @@ import (
 
 	"github.com/ZupIT/ritchie-cli/pkg/formula"
 	"github.com/ZupIT/ritchie-cli/pkg/prompt"
+	"github.com/ZupIT/ritchie-cli/pkg/rtutorial"
 	"github.com/ZupIT/ritchie-cli/pkg/slice/sliceutil"
 	"github.com/ZupIT/ritchie-cli/pkg/stream"
 )
 
 const (
 	newWorkspace = "Type new formula workspace?"
-	dirPattern   = "%s/%s"
-	treeDir      = "tree"
+	docsDir      = "docs"
 	srcDir       = "src"
 )
 
 type buildFormulaCmd struct {
 	userHomeDir string
 	workspace   formula.WorkspaceAddListValidator
-	formula     formula.Builder
+	formula     formula.LocalBuilder
 	watcher     formula.Watcher
 	directory   stream.DirListChecker
 	prompt.InputText
 	prompt.InputList
+	rt rtutorial.Finder
 }
 
 func NewBuildFormulaCmd(
 	userHomeDir string,
-	formula formula.Builder,
+	formula formula.LocalBuilder,
 	workManager formula.WorkspaceAddListValidator,
 	watcher formula.Watcher,
 	directory stream.DirListChecker,
 	inText prompt.InputText,
 	inList prompt.InputList,
+	rtf rtutorial.Finder,
 ) *cobra.Command {
 	s := buildFormulaCmd{
 		userHomeDir: userHomeDir,
@@ -49,6 +67,7 @@ func NewBuildFormulaCmd(
 		directory:   directory,
 		InputText:   inText,
 		InputList:   inList,
+		rt:          rtf,
 	}
 
 	cmd := &cobra.Command{
@@ -70,7 +89,7 @@ func (b buildFormulaCmd) runFunc() CommandRunnerFunc {
 			return err
 		}
 
-		defaultWorkspace := path.Join(b.userHomeDir, formula.DefaultWorkspaceDir)
+		defaultWorkspace := filepath.Join(b.userHomeDir, formula.DefaultWorkspaceDir)
 		if b.directory.Exists(defaultWorkspace) {
 			workspaces[formula.DefaultWorkspaceName] = defaultWorkspace
 		}
@@ -107,6 +126,12 @@ func (b buildFormulaCmd) runFunc() CommandRunnerFunc {
 
 		b.build(wspace.Dir, formulaPath)
 
+		tutorialHolder, err := b.rt.Find()
+		if err != nil {
+			return err
+		}
+		tutorialBuildFormula(tutorialHolder.Current)
+
 		return nil
 	}
 }
@@ -124,7 +149,6 @@ func (b buildFormulaCmd) build(workspacePath, formulaPath string) {
 
 	success := prompt.Green("✔ Build completed!")
 	s.Success(success)
-	prompt.Info("Now you can run your formula with Ritchie!")
 }
 
 func (b buildFormulaCmd) readFormulas(dir string) (string, error) {
@@ -133,7 +157,7 @@ func (b buildFormulaCmd) readFormulas(dir string) (string, error) {
 		return "", err
 	}
 
-	dirs = sliceutil.Remove(dirs, treeDir)
+	dirs = sliceutil.Remove(dirs, docsDir)
 
 	if isFormula(dirs) {
 		return dir, nil
@@ -144,7 +168,7 @@ func (b buildFormulaCmd) readFormulas(dir string) (string, error) {
 		return "", err
 	}
 
-	dir, err = b.readFormulas(fmt.Sprintf(dirPattern, dir, selected))
+	dir, err = b.readFormulas(filepath.Join(dir, selected))
 	if err != nil {
 		return "", err
 	}
@@ -160,4 +184,23 @@ func isFormula(dirs []string) bool {
 	}
 
 	return false
+}
+
+func tutorialBuildFormula(tutorialStatus string) {
+	const tagTutorial = "\n[TUTORIAL]"
+	const titleNewRepositories = "To add a new repository of formulas:"
+	const bodyNewRepositories = ` ∙ Run "rit add repo"`
+
+	const titlePublishFormula = "To publish your formula:"
+	const bodyPublishFormula = ` ∙ Create a git repo
+ ∙ Commit and push your formula in repo created
+ ∙ Run "rit add repo"`
+
+	if tutorialStatus == tutorialStatusEnabled {
+		prompt.Info(tagTutorial)
+		prompt.Info(titleNewRepositories)
+		fmt.Println(bodyNewRepositories)
+		prompt.Info(titlePublishFormula)
+		fmt.Println(bodyPublishFormula)
+	}
 }

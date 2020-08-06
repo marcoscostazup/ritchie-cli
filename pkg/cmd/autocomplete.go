@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cmd
 
 import (
@@ -26,10 +42,11 @@ type autocompleteCmd struct {
 // NewAutocompleteCmd creates a new cmd instance
 func NewAutocompleteCmd() *cobra.Command {
 	shells := strings.Join(supportedShell, ", ")
+
 	return &cobra.Command{
 		Use:     "completion SUBCOMMAND",
 		Short:   "Add autocomplete for terminal (" + shells + ")",
-		Long:    `Add autocomplete for terminal, Available for (` + shells + `).`,
+		Long:    "Add autocomplete for terminal, available for (" + shells + ").",
 		Example: "rit completion zsh",
 	}
 }
@@ -39,9 +56,9 @@ func NewAutocompleteZsh(g autocomplete.Generator) *cobra.Command {
 	a := &autocompleteCmd{g}
 
 	return &cobra.Command{
-		Use:     zsh.String(),
-		Short:   "Add zsh autocomplete for terminal, --help to know how to use",
-		Long:    `
+		Use:   zsh.String(),
+		Short: "Add zsh autocomplete for terminal, --help to know how to use",
+		Long: `
 Add zsh autocomplete for terminal
 Only works if zsh auto completion is installed.
 
@@ -63,9 +80,9 @@ func NewAutocompleteBash(g autocomplete.Generator) *cobra.Command {
 	a := &autocompleteCmd{g}
 
 	return &cobra.Command{
-		Use:     bash.String(),
-		Short:   "Add bash autocomplete for terminal, --help to know how to use",
-		Long:    `
+		Use:   bash.String(),
+		Short: "Add bash autocomplete for terminal, --help to know how to use",
+		Long: `
 Add bash autocomplete for terminal
 Only works if bash auto completion is installed.
 

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package tree
 
 import (
@@ -11,19 +27,19 @@ import (
 )
 
 const (
-	treeLocalCmdPattern = "%s/repo/local/tree.json"
-	treeRepoCmdPattern  = "%s/repo/cache/%s-tree.json"
+	treeLocalCmdPattern = "%s/repos/local/tree.json"
+	treeRepoCmdPattern  = "%s/repos/%s/tree.json"
 	core                = "CORE"
 	local               = "LOCAL"
 )
 
 type Manager struct {
 	ritchieHome string
-	repoLister  formula.RepoLister
+	repoLister  formula.RepositoryLister
 	coreCmds    []api.Command
 }
 
-func NewTreeManager(ritchieHome string, rl formula.RepoLister, coreCmds []api.Command) Manager {
+func NewTreeManager(ritchieHome string, rl formula.RepositoryLister, coreCmds []api.Command) Manager {
 	return Manager{ritchieHome: ritchieHome, repoLister: rl, coreCmds: coreCmds}
 }
 
@@ -46,7 +62,7 @@ func (d Manager) Tree() (map[string]formula.Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		trees[v.Name] = treeRepo
+		trees[v.Name.String()] = treeRepo
 	}
 
 	return trees, nil
@@ -87,7 +103,7 @@ func (d Manager) MergedTree(core bool) formula.Tree {
 		for _, c := range treeRepo.Commands {
 			key := c.Parent + "_" + c.Usage
 			if trees[key].Usage == "" {
-				c.Repo = r.Name
+				c.Repo = r.Name.String()
 				trees[key] = c
 				cc = append(cc, c)
 			}
@@ -103,8 +119,8 @@ func (d Manager) localTree() (formula.Tree, error) {
 	return loadTree(treeCmdFile)
 }
 
-func (d Manager) treeByRepo(repo string) (formula.Tree, error) {
-	treeCmdFile := fmt.Sprintf(treeRepoCmdPattern, d.ritchieHome, repo)
+func (d Manager) treeByRepo(repoName formula.RepoName) (formula.Tree, error) {
+	treeCmdFile := fmt.Sprintf(treeRepoCmdPattern, d.ritchieHome, repoName)
 	return loadTree(treeCmdFile)
 }
 

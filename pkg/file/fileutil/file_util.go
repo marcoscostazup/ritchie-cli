@@ -1,3 +1,19 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package fileutil
 
 import (
@@ -12,6 +28,7 @@ import (
 )
 
 // CopyDirectory recursively copies a src directory to a destination.
+// Deprecated: use the stream package to work with files and directories
 func CopyDirectory(src, dst string) error {
 	entries, err := ioutil.ReadDir(src)
 	if err != nil {
@@ -70,6 +87,7 @@ func CopyDirectory(src, dst string) error {
 }
 
 // Copy copies a src file to a dst file where src and dst are regular files.
+// Deprecated: use the stream package to work with files and directories
 func Copy(src, dst string) error {
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
@@ -96,6 +114,7 @@ func Copy(src, dst string) error {
 }
 
 // Exists check if file exists
+// Deprecated: use the stream package to work with files and directories
 func Exists(filePath string) bool {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return false
@@ -105,6 +124,7 @@ func Exists(filePath string) bool {
 }
 
 // CreateDirIfNotExists creates dir if not exists
+// Deprecated: use the stream package to work with files and directories
 func CreateDirIfNotExists(dir string, perm os.FileMode) error {
 	if Exists(dir) {
 		return nil
@@ -118,6 +138,7 @@ func CreateDirIfNotExists(dir string, perm os.FileMode) error {
 }
 
 // CreateFileIfNotExist creates file if not exists
+// Deprecated: use the stream package to work with files and directories
 func CreateFileIfNotExist(file string, content []byte) error {
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		if err := WriteFile(file, content); err != nil {
@@ -127,6 +148,7 @@ func CreateFileIfNotExist(file string, content []byte) error {
 	return nil
 }
 
+// Deprecated: use the stream package to work with files and directories
 func AppendFileData(file string, content []byte) error {
 	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, os.ModePerm)
 	if err != nil {
@@ -141,6 +163,7 @@ func AppendFileData(file string, content []byte) error {
 }
 
 // RemoveDir removes path and any children it contains.
+// Deprecated: use the stream package to work with files and directories
 func RemoveDir(dir string) error {
 	if err := os.RemoveAll(dir); err != nil {
 		return err
@@ -149,6 +172,7 @@ func RemoveDir(dir string) error {
 }
 
 // CopySymLink copies src symLink to dst symLink
+// Deprecated: use the stream package to work with files and directories
 func CopySymLink(source, dest string) error {
 	link, err := os.Readlink(source)
 	if err != nil {
@@ -158,6 +182,7 @@ func CopySymLink(source, dest string) error {
 }
 
 // ReadFile wrapper for ioutil.ReadFile
+// Deprecated: use the stream package to work with files and directories
 func ReadFile(path string) ([]byte, error) {
 	f, err := ioutil.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
@@ -168,26 +193,31 @@ func ReadFile(path string) ([]byte, error) {
 }
 
 // ReadAll reads from r until an error or EOF and returns the data it read
+// Deprecated: use the stream package to work with files and directories
 func ReadAll(r io.Reader) ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
 // CopyAll copies from src to dst until either EOF is reached on src or an error occurs
+// Deprecated: use the stream package to work with files and directories
 func CopyAll(dst io.Writer, src io.Reader) (written int64, err error) {
 	return io.Copy(dst, src)
 }
 
 // WriteFile wrapper for ioutil.WriteFile
+// Deprecated: use the stream package to work with files and directories
 func WriteFile(path string, content []byte) error {
 	return ioutil.WriteFile(path, content, 0644)
 }
 
 // WriteFilePerm wrapper for ioutil.WriteFile
+// Deprecated: use the stream package to work with files and directories
 func WriteFilePerm(path string, content []byte, perm int32) error {
 	return ioutil.WriteFile(path, content, os.FileMode(perm))
 }
 
 // RemoveFile wrapper for os.Delete
+// Deprecated: use the stream package to work with files and directories
 func RemoveFile(path string) error {
 	if exits := Exists(path); exits {
 		return os.Remove(path)
@@ -196,6 +226,7 @@ func RemoveFile(path string) error {
 }
 
 // Unzip wrapper for archive.zip
+// Deprecated: use the stream package to work with files and directories
 func Unzip(src string, dest string) error {
 	reader, _ := zip.OpenReader(src)
 	for _, file := range reader.Reader.File {
@@ -238,6 +269,7 @@ func Unzip(src string, dest string) error {
 }
 
 // IsNotExistErr
+// Deprecated: use the stream package to work with files and directories
 func IsNotExistErr(err error) bool {
 	return os.IsNotExist(errors.Cause(err))
 }
@@ -254,6 +286,7 @@ func readFilesDir(path string) ([]os.FileInfo, error) {
 }
 
 // Move files from oPath to nPath
+// Deprecated: use the stream package to work with files and directories
 func MoveFiles(oPath, nPath string, files []string) error {
 	for _, f := range files {
 		pwdOF := fmt.Sprintf("%s/%s", oPath, f)

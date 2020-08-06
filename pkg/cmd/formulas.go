@@ -1,8 +1,25 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cmd
 
 import (
 	"fmt"
-	"strconv"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -17,39 +34,36 @@ const (
 	Group       = "group"
 	dockerFlag  = "docker"
 	verboseFlag = "verbose"
-	RootCmd     = "root"
+	rootCmdName = "root"
 )
 
 type FormulaCommand struct {
-	coreCmds      api.Commands
-	treeManager   formula.TreeManager
-	defaultRunner formula.Runner
-	dockerRunner  formula.Runner
+	coreCmds    api.Commands
+	treeManager formula.TreeManager
+	formula     formula.Runner
 }
 
 func NewFormulaCommand(
 	coreCmds api.Commands,
 	treeManager formula.TreeManager,
-	defaultRunner formula.Runner,
-	dockerRunner formula.Runner) *FormulaCommand {
+	formula formula.Runner) *FormulaCommand {
 	return &FormulaCommand{
-		coreCmds:      coreCmds,
-		treeManager:   treeManager,
-		defaultRunner: defaultRunner,
-		dockerRunner:  dockerRunner,
+		coreCmds:    coreCmds,
+		treeManager: treeManager,
+		formula:     formula,
 	}
 }
 
-func (f FormulaCommand) Add(rootCmd *cobra.Command) error {
+func (f FormulaCommand) Add(root *cobra.Command) error {
 	treeRep := f.treeManager.MergedTree(false)
 	commands := make(map[string]*cobra.Command)
-	commands[RootCmd] = rootCmd
+	commands[rootCmdName] = root
 
 	for _, cmd := range treeRep.Commands {
-		cmdPath := api.Command{Parent: cmd.Parent, Usage: cmd.Usage}
+		cmdPath := api.Command{Id: cmd.Id, Parent: cmd.Parent, Usage: cmd.Usage}
 		if !sliceutil.ContainsCmd(f.coreCmds, cmdPath) {
 			var newCmd *cobra.Command
-			if cmd.Formula != nil && cmd.Formula.Path != "" {
+			if cmd.Formula {
 				newCmd = f.newFormulaCmd(cmd)
 			} else {
 				newCmd = newSubCmd(cmd)
@@ -57,8 +71,7 @@ func (f FormulaCommand) Add(rootCmd *cobra.Command) error {
 
 			parentCmd := commands[cmd.Parent]
 			parentCmd.AddCommand(newCmd)
-			cmdKey := fmt.Sprintf("%s_%s", cmdPath.Parent, cmdPath.Usage)
-			commands[cmdKey] = newCmd
+			commands[cmdPath.Id] = newCmd
 		}
 	}
 
@@ -67,14 +80,14 @@ func (f FormulaCommand) Add(rootCmd *cobra.Command) error {
 
 func newSubCmd(cmd api.Command) *cobra.Command {
 	var group string
-	if cmd.Parent == RootCmd {
-		group = fmt.Sprintf("%s commands:", cmd.Repo)
+	if cmd.Parent == rootCmdName {
+		group = fmt.Sprintf("%s repo commands:", cmd.Repo)
 	}
 
 	c := &cobra.Command{
 		Use:         cmd.Usage + subCommand,
 		Short:       cmd.Help,
-		Long:        cmd.Help,
+		Long:        cmd.LongHelp,
 		Annotations: map[string]string{Group: group},
 	}
 	c.LocalFlags()
@@ -85,26 +98,21 @@ func (f FormulaCommand) newFormulaCmd(cmd api.Command) *cobra.Command {
 	formulaCmd := &cobra.Command{
 		Use:   cmd.Usage,
 		Short: cmd.Help,
-		Long:  cmd.Help,
+		Long:  cmd.LongHelp,
 	}
 
 	addFlags(formulaCmd)
-	formulaCmd.RunE = f.execFormulaFunc(cmd.Repo, *cmd.Formula)
+	path := strings.ReplaceAll(strings.Replace(cmd.Parent, "root", "", 1), "_", string(os.PathSeparator))
+	path = fmt.Sprintf("%s%s%s", path, string(os.PathSeparator), cmd.Usage)
+	formulaCmd.RunE = f.execFormulaFunc(cmd.Repo, path)
 
 	return formulaCmd
 }
 
-func (f FormulaCommand) execFormulaFunc(repo string, form api.Formula) func(cmd *cobra.Command, args []string) error {
+func (f FormulaCommand) execFormulaFunc(repo, path string) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		d := formula.Definition{
-			Path:     form.Path,
-			Bin:      form.Bin,
-			LBin:     form.LBin,
-			MBin:     form.MBin,
-			WBin:     form.WBin,
-			Bundle:   form.Bundle,
-			Config:   form.Config,
-			RepoURL:  form.RepoURL,
+			Path:     path,
 			RepoName: repo,
 		}
 
@@ -122,24 +130,22 @@ func (f FormulaCommand) execFormulaFunc(repo string, form api.Formula) func(cmd 
 			return err
 		}
 
-		v, err := cmd.Flags().GetBool(verboseFlag)
+		verbose, err := cmd.Flags().GetBool(verboseFlag)
 
 		if err != nil {
 			return err
 		}
 
-		verbose := strconv.FormatBool(v)
-
-		if docker {
-			return f.dockerRunner.Run(d, inputType, verbose)
+		if err := f.formula.Run(d, inputType, docker, verbose); err != nil {
+			return err
 		}
 
-		return f.defaultRunner.Run(d, inputType, verbose)
+		return nil
 	}
 }
 
 func addFlags(cmd *cobra.Command) {
 	formulaFlags := cmd.Flags()
-	formulaFlags.BoolP(dockerFlag, "d", false, "Use to run formulas inside a docker container")
+	formulaFlags.BoolP(dockerFlag, "d", false, "Use to run formulas inside docker")
 	formulaFlags.BoolP(verboseFlag, "a", false, "Verbose mode (All). Indicate to a formula that it should show log messages in more detail")
 }

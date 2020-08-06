@@ -1,29 +1,44 @@
+/*
+ * Copyright 2020 ZUP IT SERVICOS EM TECNOLOGIA E INOVACAO SA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cmd
 
 import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/ZupIT/ritchie-cli/pkg/api"
+	"github.com/spf13/cobra"
+
 	"github.com/ZupIT/ritchie-cli/pkg/file/fileutil"
 	"github.com/ZupIT/ritchie-cli/pkg/prompt"
-	"github.com/ZupIT/ritchie-cli/pkg/server"
-	"github.com/ZupIT/ritchie-cli/pkg/session"
+	"github.com/ZupIT/ritchie-cli/pkg/rtutorial"
 	"github.com/ZupIT/ritchie-cli/pkg/slice/sliceutil"
+	"github.com/ZupIT/ritchie-cli/pkg/stream"
 	"github.com/ZupIT/ritchie-cli/pkg/version"
-	"github.com/ZupIT/ritchie-cli/pkg/workspace"
-
-	"github.com/spf13/cobra"
 )
 
 const (
 	latestVersionMsg            = "Latest available version: %s"
-	versionMsg                  = "%s (%s)\n  Build date: %s\n  Built with: %s\n"
-	versionMsgWithLatestVersion = "%s (%s)\n  %s\n  Build date: %s\n  Built with: %s\n"
+	versionMsg                  = "%s\n  Build date: %s\n  Built with: %s\n"
+	versionMsgWithLatestVersion = "%s\n  %s\n  Build date: %s\n  Built with: %s\n"
 	cmdUse                      = "rit"
 	cmdShortDescription         = "rit is a NoOps CLI"
 	cmdDescription              = `A CLI that developers can build and operate
@@ -32,20 +47,12 @@ Complete documentation available at https://github.com/ZupIT/ritchie-cli`
 )
 
 var (
-	// Version contains the current version	.
-	Version = "dev"
-	// BuildDate contains a string with the build date.
-	BuildDate = "unknown"
-
-	// MsgInit error message for init cmd
-	MsgInit = "To start using rit, you need to initialize rit first.\nCommand: rit init"
-	// MsgSession error message for session not initialized
-	MsgSession = "To use this command, you need to start a session first.\nCommand: rit login"
-
-	// Url to get Rit Stable Version
+	Version          = ""
+	BuildDate        = "unknown"
 	StableVersionUrl = "https://commons-repo.ritchiecli.io/stable.txt"
+	MsgInit          = "To start using rit, you need to initialize rit first.\nCommand: rit init"
 
-	singleIgnorelist = []string{
+	allowList = []string{
 		fmt.Sprint(cmdUse),
 		fmt.Sprintf("%s help", cmdUse),
 		fmt.Sprintf("%s completion zsh", cmdUse),
@@ -54,50 +61,28 @@ var (
 		fmt.Sprintf("%s completion powershell", cmdUse),
 		fmt.Sprintf("%s init", cmdUse),
 		fmt.Sprintf("%s upgrade", cmdUse),
+		fmt.Sprintf("%s add repo", cmdUse),
 	}
 
-	teamIgnorelist = []string{
+	upgradeList = []string{
 		fmt.Sprint(cmdUse),
-		fmt.Sprintf("%s login", cmdUse),
-		fmt.Sprintf("%s logout", cmdUse),
-		fmt.Sprintf("%s help", cmdUse),
-		fmt.Sprintf("%s completion zsh", cmdUse),
-		fmt.Sprintf("%s completion bash", cmdUse),
-		fmt.Sprintf("%s completion fish", cmdUse),
-		fmt.Sprintf("%s completion powershell", cmdUse),
-		fmt.Sprintf("%s init", cmdUse),
-		fmt.Sprintf("%s upgrade", cmdUse),
-	}
-
-	upgradeValidationWhiteList = []string{
-		fmt.Sprint(cmdUse),
-		fmt.Sprintf("%s login", cmdUse),
 	}
 )
 
-type singleRootCmd struct {
-	workspaceChecker workspace.Checker
-	sessionValidator session.Validator
+type rootCmd struct {
+	ritchieHome string
+	dir         stream.DirCreateChecker
+	rt          rtutorial.Finder
 }
 
-type teamRootCmd struct {
-	workspaceChecker workspace.Checker
-	serverFinder     server.Finder
-	sessionValidator session.Validator
-}
-
-// NewSingleRootCmd creates the root command for single edition.
-func NewSingleRootCmd(wc workspace.Checker, sv session.Validator) *cobra.Command {
-	o := &singleRootCmd{
-		workspaceChecker: wc,
-		sessionValidator: sv,
-	}
+func NewRootCmd(ritchieHome string, dir stream.DirCreateChecker, rtf rtutorial.Finder) *cobra.Command {
+	o := &rootCmd{ritchieHome: ritchieHome, dir: dir, rt: rtf}
 
 	cmd := &cobra.Command{
 		Use:                cmdUse,
-		Version:            versionFlag(api.Single),
 		Short:              cmdShortDescription,
 		Long:               cmdDescription,
+		Version:            versionFlag(),
 		PersistentPreRunE:  o.PreRunFunc(),
 		PersistentPostRunE: o.PostRunFunc(),
 		RunE:               runHelp,
@@ -109,41 +94,17 @@ func NewSingleRootCmd(wc workspace.Checker, sv session.Validator) *cobra.Command
 	return cmd
 }
 
-// NewTeamRootCmd creates the root command for team edition.
-func NewTeamRootCmd(wc workspace.Checker,
-	sf server.Finder,
-	sv session.Validator) *cobra.Command {
-	o := &teamRootCmd{
-		workspaceChecker: wc,
-		serverFinder:     sf,
-		sessionValidator: sv,
-	}
-
-	cmd := &cobra.Command{
-		Use:                cmdUse,
-		Version:            versionFlag(api.Team),
-		Short:              cmdShortDescription,
-		Long:               cmdDescription,
-		PersistentPreRunE:  o.PreRunFunc(),
-		PersistentPostRunE: o.PostRunFunc(),
-		RunE:               runHelp,
-		SilenceErrors:      true,
-	}
-	cmd.PersistentFlags().Bool("stdin", false, "input by stdin")
-	return cmd
-}
-
-func (o *singleRootCmd) PreRunFunc() CommandRunnerFunc {
+func (ro *rootCmd) PreRunFunc() CommandRunnerFunc {
 	return func(cmd *cobra.Command, args []string) error {
-		if err := o.workspaceChecker.Check(); err != nil {
+		if err := ro.dir.Create(ro.ritchieHome); err != nil {
 			return err
 		}
 
-		if isWhitelist(singleIgnorelist, cmd) || isCompleteCmd(cmd) {
+		if isAllowList(allowList, cmd) || isCompleteCmd(cmd) {
 			return nil
 		}
 
-		if err := o.sessionValidator.Validate(); err != nil {
+		if !ro.ritchieIsInitialized() {
 			fmt.Println(MsgInit)
 			os.Exit(0)
 		}
@@ -152,49 +113,23 @@ func (o *singleRootCmd) PreRunFunc() CommandRunnerFunc {
 	}
 }
 
-func (o *teamRootCmd) PreRunFunc() CommandRunnerFunc {
-	return func(cmd *cobra.Command, args []string) error {
-		if err := o.workspaceChecker.Check(); err != nil {
-			return err
-		}
-
-		if isWhitelist(teamIgnorelist, cmd) || isCompleteCmd(cmd) {
-			return nil
-		}
-
-		cfg, err := o.serverFinder.Find()
-		if err != nil {
-			return err
-		} else if cfg.URL == "" {
-			fmt.Println(MsgInit)
-			os.Exit(0)
-		}
-
-		if err := o.sessionValidator.Validate(); err != nil {
-			fmt.Println(MsgSession)
-			os.Exit(0)
-		}
-
-		return nil
-	}
-}
-
-func (o *singleRootCmd) PostRunFunc() CommandRunnerFunc {
+func (ro *rootCmd) PostRunFunc() CommandRunnerFunc {
 	return func(cmd *cobra.Command, args []string) error {
 		verifyNewVersion(cmd)
-		return nil
-	}
-}
 
-func (o *teamRootCmd) PostRunFunc() CommandRunnerFunc {
-	return func(cmd *cobra.Command, args []string) error {
-		verifyNewVersion(cmd)
+		if !ro.ritchieIsInitialized() && cmd.Use == cmdUse {
+			tutorialHolder, err := ro.rt.Find()
+			if err != nil {
+				return err
+			}
+			tutorialRit(tutorialHolder.Current)
+		}
 		return nil
 	}
 }
 
 func verifyNewVersion(cmd *cobra.Command) {
-	if isWhitelist(upgradeValidationWhiteList, cmd) {
+	if isAllowList(upgradeList, cmd) {
 		resolver := version.DefaultVersionResolver{
 			StableVersionUrl: StableVersionUrl,
 			FileUtilService:  fileutil.DefaultService{},
@@ -204,15 +139,15 @@ func verifyNewVersion(cmd *cobra.Command) {
 	}
 }
 
-func isWhitelist(whitelist []string, cmd *cobra.Command) bool {
-	return sliceutil.Contains(whitelist, cmd.CommandPath())
+func isAllowList(allowList []string, cmd *cobra.Command) bool {
+	return sliceutil.Contains(allowList, cmd.CommandPath())
 }
 
 func isCompleteCmd(cmd *cobra.Command) bool {
 	return strings.Contains(cmd.CommandPath(), "__complete")
 }
 
-func versionFlag(edition api.Edition) string {
+func versionFlag() string {
 	resolver := version.DefaultVersionResolver{
 		StableVersionUrl: StableVersionUrl,
 		FileUtilService:  fileutil.DefaultService{},
@@ -221,11 +156,29 @@ func versionFlag(edition api.Edition) string {
 	latestVersion, err := resolver.StableVersion()
 	if err == nil && latestVersion != Version {
 		formattedLatestVersionMsg := prompt.Yellow(fmt.Sprintf(latestVersionMsg, latestVersion))
-		return fmt.Sprintf(versionMsgWithLatestVersion, Version, edition, formattedLatestVersionMsg, BuildDate, runtime.Version())
+		return fmt.Sprintf(versionMsgWithLatestVersion, Version, formattedLatestVersionMsg, BuildDate, runtime.Version())
 	}
-	return fmt.Sprintf(versionMsg, Version, edition, BuildDate, runtime.Version())
+	return fmt.Sprintf(versionMsg, Version, BuildDate, runtime.Version())
 }
 
-func runHelp(cmd *cobra.Command, args []string) error {
+func runHelp(cmd *cobra.Command, _ []string) error {
 	return cmd.Help()
+}
+
+func tutorialRit(tutorialStatus string) {
+	const tagTutorial = "\n[TUTORIAL]"
+	const MessageTitle = "To initialize the ritchie:"
+	const MessageBody = ` ∙ Run "rit init"` + "\n"
+
+	if tutorialStatus == tutorialStatusEnabled {
+		prompt.Info(tagTutorial)
+		prompt.Info(MessageTitle)
+		fmt.Println(MessageBody)
+	}
+}
+
+func (ro *rootCmd) ritchieIsInitialized() bool {
+	commonsRepoPath := filepath.Join(ro.ritchieHome, "repos", "commons")
+
+	return ro.dir.Exists(commonsRepoPath)
 }
